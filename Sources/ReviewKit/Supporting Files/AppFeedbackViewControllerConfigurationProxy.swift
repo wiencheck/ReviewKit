@@ -36,7 +36,7 @@ public struct AppFeedbackViewControllerConfiguration {
     /**
      Text of the last button in the prompt that performs a dismissal action.
      */
-    public var dismissButtonTitle: String
+    public var dismissButtonTitle: String?
     
     /**
      Action performed after selecting primary button.

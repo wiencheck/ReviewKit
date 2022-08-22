@@ -130,19 +130,12 @@ public class AppFeedbackViewController: UIViewController {
         rootViewController.present(self, animated: flag, completion: nil)
     }
     
-    private func close(completion: (() -> Void)? = nil) {
-        dismiss(animated: true) {
-            self.alertWindow = nil
-            completion?()
-        }
-    }
-    
     private func handleOptionSelected(_ sender: UIControl) {
         switch sender {
         case primaryButton:
             AppReviewManager.askingStatus = .posititve
             primaryButton.pressHandler = { [weak self] _ in
-                self?.close(completion: {
+                self?.dismiss(animated: true, completion: {
                     if let handler = Self.configuration.primaryButtonActionHandler {
                         handler(true)
                     } else {
@@ -151,19 +144,19 @@ public class AppFeedbackViewController: UIViewController {
                 })
             }
             secondaryButton.pressHandler = { [weak self] _ in
-                self?.close(completion: {
+                self?.dismiss(animated: true, completion: {
                     Self.configuration.secondaryButtonActionHandler?(true)
                 })
             }
         case secondaryButton:
             AppReviewManager.askingStatus = .negative
             primaryButton.pressHandler = { [weak self] _ in
-                self?.close(completion: {
+                self?.dismiss(animated: true, completion: {
                     Self.configuration.primaryButtonActionHandler?(false)
                 })
             }
             secondaryButton.pressHandler = { [weak self] _ in
-                self?.close(completion: {
+                self?.dismiss(animated: true, completion: {
                     Self.configuration.secondaryButtonActionHandler?(false)
                 })
             }
@@ -174,9 +167,10 @@ public class AppFeedbackViewController: UIViewController {
             } else {
                 AppReviewManager.askingStatus = .notDetermined
             }
-            close()
+            dismiss(animated: true)
             return
         }
+        
         updateContents(basedOnStatus: AppReviewManager.askingStatus, animated: true)
     }
     
@@ -194,6 +188,9 @@ public class AppFeedbackViewController: UIViewController {
             secondaryButton.text = Self.configuration.secondaryButtonTitle(feedbackStatus)
             secondaryButton.isHidden = (secondaryButton.text == nil)
             
+            tertiaryButton.setTitle(Self.configuration.dismissButtonTitle, for: .normal)
+            tertiaryButton.isHidden = (Self.configuration.dismissButtonTitle == nil)
+            
             view.layoutIfNeeded()
         }
         
@@ -202,7 +199,13 @@ public class AppFeedbackViewController: UIViewController {
             return
         }
         
-        UIView.animate(withDuration: 0.34, delay: 0, usingSpringWithDamping: 0.9, initialSpringVelocity: 0.9, options: [.curveLinear], animations: animations, completion: nil)
+        UIView.animate(withDuration: 0.34,
+                       delay: 0,
+                       usingSpringWithDamping: 0.9,
+                       initialSpringVelocity: 0.9,
+                       options: [.curveLinear, .layoutSubviews],
+                       animations: animations,
+                       completion: nil)
     }
     
     private func setupView() {

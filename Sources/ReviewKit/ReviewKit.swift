@@ -8,6 +8,7 @@
 
 import StoreKit
 import BoldButton
+import AppConfiguration
 
 public struct AppReviewManager {
     /**
@@ -49,7 +50,7 @@ public struct AppReviewManager {
         presentingTask = DispatchWorkItem {
             actionsCounter = 0
             lastAskingDate = Date()
-            lastAskingVersion = UIApplication.shared.appVersion
+            lastAskingVersion = AppVersion.current.project.description
             presentAlert()
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4, execute: presentingTask!)
@@ -88,13 +89,13 @@ public struct AppReviewManager {
     }
 }
 
-// - MARK: Private stuff
+// MARK: Private stuff
 extension AppReviewManager {
     private static var shouldDisplayMessage: Bool {
         if rules.isDebugging {
             return true
         }
-        if UIApplication.shared.configuration != .release,
+        if AppConfiguration.current != .release,
            !shouldDisplayOutsideAppStore {
             log("Feedback prompt will not be presented because app is not in release configuration.")
             return false
@@ -111,7 +112,7 @@ extension AppReviewManager {
             checks.append(abs(Date().daysBetween(end: date)) > rules.numberOfDaysBetweenAskingAttempts)
         }
         if let version = lastAskingVersion {
-            if version == UIApplication.shared.appVersion {
+            if version == AppVersion.current.description {
                 // Set to true if version is the same and rules state that it should ask
                 checks.append(rules.shouldAskForTheSameVersionMoreThanOnce)
             } else {
@@ -135,7 +136,7 @@ extension AppReviewManager {
                 message += "\nLast display date: \(date), asks every \(rules.numberOfDaysBetweenAskingAttempts) days"
             }
             if let version = lastAskingVersion {
-                message += ",\nLast display version: \(version), current version: \(UIApplication.shared.appVersion), should ask more than once: \(rules.shouldAskForTheSameVersionMoreThanOnce)"
+                message += ",\nLast display version: \(version), current version: \(AppVersion.current), should ask more than once: \(rules.shouldAskForTheSameVersionMoreThanOnce)"
             }
             log(message)
         }
@@ -143,7 +144,8 @@ extension AppReviewManager {
     }
     
     private static func presentSystemPrompt() {
-        if #available(iOS 14.0, *), let focused = UIWindowScene.focused {
+        if #available(iOS 14.0, *),
+            let focused = UIWindowScene.focused {
             SKStoreReviewController.requestReview(in: focused)
         } else {
             SKStoreReviewController.requestReview()
@@ -153,6 +155,7 @@ extension AppReviewManager {
     private static func presentCustomPrompt() {
         AppFeedbackViewController().show(animated: true)
     }
+    
     private static func log(_ message: String) {
         guard isLoggingEnabled else { return }
         print("ReviewKit: ", message)

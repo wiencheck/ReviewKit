@@ -9,6 +9,8 @@ import Foundation
 
 extension Date {
     func daysBetween(end: Date) -> Int {
-        return Calendar.current.dateComponents([.day], from: self, to: end).day!
+        return Calendar.current.dateComponents([.day],
+                                               from: self,
+                                               to: end).day ?? 0
     }
 }
