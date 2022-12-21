@@ -7,7 +7,7 @@
 
 import Foundation
 
-public enum FeedbackStatus: Int {
+public enum FeedbackStatus: Codable {
     case notDetermined
     
     case negative

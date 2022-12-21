@@ -8,9 +8,13 @@
 import UIKit
 import StoreKit
 import BoldButton
+import OverlayPresentable
 
-public class AppFeedbackViewController: UIViewController {
+public class AppFeedbackViewController: UIViewController, OverlayPresentable {
+    
     public static var configuration = AppFeedbackViewControllerConfiguration()
+    
+    public weak var window: UIWindow?
     
     private lazy var mainLabel: UILabel = {
         let l = UILabel()
@@ -55,30 +59,7 @@ public class AppFeedbackViewController: UIViewController {
         return b
     }()
     
-    private lazy var alertWindow: UIWindow? = {
-        let window: UIWindow
-        if #available(iOS 13.0, *),
-           let focused = UIWindowScene.focused {
-            window = UIWindow(windowScene: focused)
-            window.tintColor = focused.windows.first(where: \.isKeyWindow)?.tintColor
-        } else {
-            window = UIWindow()
-            window.tintColor = UIApplication.shared.keyWindow?.tintColor
-        }
-        window.rootViewController = OverlayViewController()
-        window.backgroundColor = .clear
-        if let tintColor = Self.configuration.tintColor {
-            window.tintColor = tintColor
-        }
-        window.windowLevel = UIWindow.Level.alert
-        return window
-    }()
-    
     private lazy var feedbackGenerator = UIImpactFeedbackGenerator()
-    
-    private var overlayVc: OverlayViewController? {
-        return presentingViewController as? OverlayViewController
-    }
         
     init() {
         super.init(nibName: nil, bundle: nil)
@@ -101,7 +82,7 @@ public class AppFeedbackViewController: UIViewController {
     
     public override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        overlayVc?.setOverlay(hidden: false)
+        AppReviewManager.isPresenting = true
     }
     
     public override func viewDidAppear(_ animated: Bool) {
@@ -109,38 +90,23 @@ public class AppFeedbackViewController: UIViewController {
         feedbackGenerator.prepare()
     }
     
-    public override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        overlayVc?.setOverlay(hidden: true)
-    }
-    
     public override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
-        alertWindow = nil
-    }
-
-    func show(animated flag: Bool) {
-        guard let alertWindow = alertWindow,
-           let rootViewController = alertWindow.rootViewController else {
-            return
-        }
-        alertWindow.makeKeyAndVisible()
-        modalTransitionStyle = .coverVertical
-        modalPresentationStyle = .overFullScreen
-        rootViewController.present(self, animated: flag, completion: nil)
+        AppReviewManager.isPresenting = false
+        cleanupAfterPresentation()
     }
     
-    private func handleOptionSelected(_ sender: UIControl) {
+}
+
+private extension AppFeedbackViewController {
+    
+    func handleOptionSelected(_ sender: UIControl) {
         switch sender {
         case primaryButton:
             AppReviewManager.askingStatus = .posititve
             primaryButton.pressHandler = { [weak self] _ in
                 self?.dismiss(animated: true, completion: {
-                    if let handler = Self.configuration.primaryButtonActionHandler {
-                        handler(true)
-                    } else {
-                        AppReviewManager.openAppStoreReviewForm()
-                    }
+                    Self.configuration.primaryButtonActionHandler?(true)
                 })
             }
             secondaryButton.pressHandler = { [weak self] _ in
@@ -148,6 +114,7 @@ public class AppFeedbackViewController: UIViewController {
                     Self.configuration.secondaryButtonActionHandler?(true)
                 })
             }
+            
         case secondaryButton:
             AppReviewManager.askingStatus = .negative
             primaryButton.pressHandler = { [weak self] _ in
@@ -160,11 +127,9 @@ public class AppFeedbackViewController: UIViewController {
                     Self.configuration.secondaryButtonActionHandler?(false)
                 })
             }
+            
         default:
-            // If user pressed positive review and then "maybe later", we will show him the system dialog in the future.
-            if AppReviewManager.askingStatus == .posititve {
-                AppReviewManager.askingStatus = .negative
-            } else {
+            if AppReviewManager.askingStatus == .negative {
                 AppReviewManager.askingStatus = .notDetermined
             }
             dismiss(animated: true)
@@ -174,7 +139,7 @@ public class AppFeedbackViewController: UIViewController {
         updateContents(basedOnStatus: AppReviewManager.askingStatus, animated: true)
     }
     
-    private func updateContents(basedOnStatus feedbackStatus: FeedbackStatus, animated: Bool) {
+    func updateContents(basedOnStatus feedbackStatus: FeedbackStatus, animated: Bool) {
         func animations() {
             mainLabel.text = Self.configuration.titleText(feedbackStatus)
             mainLabel.isHidden = (mainLabel.text == nil)
@@ -208,40 +173,42 @@ public class AppFeedbackViewController: UIViewController {
                        completion: nil)
     }
     
-    private func setupView() {
-        var constraints = [NSLayoutConstraint]()
+    func setupView() {
         let spacing: CGFloat = 14
         
-        let background = UIView(frame: .zero)
-        background.backgroundColor = .background
-        background.layer.cornerRadius = 18
-        background.layer.maskedCorners = [.layerMaxXMinYCorner, .layerMinXMinYCorner] // Top right corner, Top left corner respectively
+        let scrollView = UIScrollView(frame: .zero)
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.backgroundColor = .systemBackground
+        view.addSubview(scrollView)
         
-        view.addSubview(background)
-        background.translatesAutoresizingMaskIntoConstraints = false
-        constraints.append(contentsOf: [
-            background.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            background.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            background.bottomAnchor.constraint(equalTo: view.bottomAnchor)
-        ])
+        let container = UIView(frame: .zero)
+        container.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.addSubview(container)
         
         let stack = UIStackView(arrangedSubviews: [mainLabel, secondaryLabel, primaryButton, secondaryButton, tertiaryButton])
         stack.axis = .vertical
         stack.spacing = spacing
         stack.alignment = .fill
-        
-        background.addSubview(stack)
         stack.translatesAutoresizingMaskIntoConstraints = false
-        constraints.append(contentsOf: [
-            stack.topAnchor.constraint(equalTo: background.safeAreaLayoutGuide.topAnchor, constant: spacing),
-            stack.centerXAnchor.constraint(equalTo: background.safeAreaLayoutGuide.centerXAnchor),
-            stack.centerYAnchor.constraint(equalTo: background.safeAreaLayoutGuide.centerYAnchor),
-            stack.widthAnchor.constraint(lessThanOrEqualToConstant: 420),
-            stack.widthAnchor.constraint(equalTo: background.safeAreaLayoutGuide.widthAnchor, multiplier: 0.8)
-        ])
-        constraints.last?.priority = UILayoutPriority(999)
+        container.addSubview(stack)
         
-        NSLayoutConstraint.activate(constraints)
+        NSLayoutConstraint.activate([
+            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
+            
+            container.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
+            container.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
+            container.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            container.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
+            container.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
+            
+            stack.topAnchor.constraint(equalTo: container.topAnchor, constant: 12),
+            stack.widthAnchor.constraint(equalTo: container.widthAnchor, multiplier: 0.8),
+            stack.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            stack.centerYAnchor.constraint(equalTo: container.centerYAnchor)
+        ])
     }
 }
 

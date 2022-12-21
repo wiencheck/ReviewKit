@@ -6,13 +6,16 @@
 //
 
 import Foundation
+import AppConfiguration
 
 public struct Rules {
-    public var numberOfDaysBetweenAskingAttempts = 7
     
-    public var numberOfActionsPerformed = 220
+    public var firstDate: Date?
+    
+    public var numberOfDaysBetweenAskingAttempts = 7
     
     public var shouldAskForTheSameVersionMoreThanOnce = false
     
-    public var isDebugging = false
+    public var appConfigurations: [AppConfiguration] = [.release, .debug]
+        
 }
