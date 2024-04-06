@@ -16,10 +16,10 @@ let package = Package(
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
-        .package(url: "https://github.com/wiencheck/BoldButton", from: "0.3.7"),
-        .package(url: "https://github.com/wiencheck/OverlayPresentable", from: "0.0.1"),
-        .package(url: "https://github.com/wiencheck/AppConfiguration", from: "1.0.3"),
-        .package(url: "https://github.com/wiencheck/SwiftPropertyWrappers", from: "1.0.0")
+        .package(url: "https://github.com/wiencheck/BoldButton", branch: "master"),
+        .package(url: "https://github.com/wiencheck/OverlayPresentable", branch: "master"),
+        .package(url: "https://github.com/wiencheck/AppConfiguration", branch: "master"),
+        .package(url: "https://github.com/wiencheck/SwiftPropertyWrappers", branch: "master")
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.

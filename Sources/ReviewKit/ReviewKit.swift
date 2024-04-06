@@ -57,7 +57,7 @@ public struct AppReviewManager {
      Displays custom or system feedback prompt to the user.
      
      - Parameters:
-        - overrideAskingStatus: If set to `true`, custom prompt will be displayed at all times. Otherwise system prompt will be displayed if current `FeedbackStatus` is negative.
+     - overrideAskingStatus: If set to `true`, custom prompt will be displayed at all times. Otherwise system prompt will be displayed if current `FeedbackStatus` is negative.
      */
     public static func presentAlert(overrideAskingStatus: Bool = false) {
         Task {
@@ -80,20 +80,22 @@ public struct AppReviewManager {
 
 public extension AppReviewManager {
     
-    @Defaults(key: "appreview_last_date",
-              defaultValue: nil)
+    @UserDefaultsStorage("appreview_last_date")
     internal(set) static var lastAskingDate: Date!
     
-    @Defaults(key: "appreview_last_version",
-              defaultValue: nil)
+    @UserDefaultsStorage("appreview_last_version")
     internal(set) static var lastAskingVersion: AppVersion!
     
-    @Defaults(key: "appreview_feedback_status",
-              defaultValue: .notDetermined)
+    @UserDefaultsStorage(
+        "appreview_feedback_status",
+        defaultValue: .notDetermined
+    )
     internal(set) static var askingStatus: FeedbackStatus
     
-    @Defaults(key: "appreview_did_open_appstore_review",
-              defaultValue: false)
+    @UserDefaultsStorage(
+        "appreview_did_open_appstore_review",
+        defaultValue: false
+    )
     internal(set) static var userDidOpenAppStoreReviewPage: Bool
     
 }
